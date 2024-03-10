@@ -1,188 +1,115 @@
 import numpy as np
 import cv2
-
-
-
-
-import numpy as np
-import matplotlib.pyplot as plt
 import heapq
-
-# Map dimensions and clearance setting
-map_w, map_h = 1200, 500  # Width and height of the map
-clr = 5  # Clearance
-
-# Movement actions and their respective costs
-movements = {
-    'MOVE_UP': ('UP', (0, -1), 1),
-    'MOVE_DOWN': ('DOWN', (0, 1), 1),
-    'MOVE_LEFT': ('LEFT', (-1, 0), 1.0),
-    'MOVE_RIGHT': ('RIGHT', (1, 0), 1.0),
-    'MOVE_UP_LEFT': ('UP_LEFT', (-1, 1), 1.4),
-    'MOVE_UP_RIGHT': ('UP_RIGHT', (1, 1), 1.4),
-    'MOVE_DOWN_LEFT': ('DOWN_LEFT', (-1, -1), 1.4),
-    'MOVE_DOWN_RIGHT': ('DOWN_RIGHT', (1, -1), 1.4),
-}
-
-# Check if the current position is within an obstacle space, considering the clearance
-def obstacle_check(pos):
-    # Placeholder for actual obstacle checking logic
-    # Return True if pos is within an obstacle, considering the clearance
-    return False
-
-# Verify if the position is within the boundaries of the map
-def within_map(x, y):
-    return 0 <= x < map_w and 0 <= y < map_h
-
-# Implementation of Dijkstra's algorithm to find the shortest path
-def dijkstra_algo(start_pos, goal_pos):
-    queue = []  # Priority queue for open list
-    heapq.heappush(queue, (0, start_pos))  # Initialize with start position
-    path_from = {}  # Track path from start to current node
-    cost = {start_pos: 0}  # Cost from start to current node
-
-    while queue:
-        current_cost, current_pos = heapq.heappop(queue)
-
-        # If goal is reached, stop the algorithm
-        if current_pos == goal_pos:
-            break
-
-        # Explore neighbors
-        for move, (dx, dy), move_cost in movements.values():
-            next_pos = (current_pos[0] + dx, current_pos[1] + dy)
-            if within_map(*next_pos) and not obstacle_check(next_pos):
-                new_cost = cost[current_pos] + move_cost
-                if next_pos not in cost or new_cost < cost[next_pos]:
-                    cost[next_pos] = new_cost
-                    heapq.heappush(queue, (new_cost, next_pos))
-                    path_from[next_pos] = current_pos
-
-    return path_from, cost
-
-# Reconstruct the shortest path from start to goal
-def reconstruct_path(path_from, start_pos, goal_pos):
-    current = goal_pos
-    path = []
-    while current != start_pos:
-        path.append(current)
-        current = path_from[current]
-    path.append(start_pos)
-    path.reverse()  # Reverse to get path from start to goal
-    return path
-
-# Function to visualize the path
-def plot_path(path):
-    fig, ax = plt.subplots()
-    ax.set_aspect('equal')
-    ax.set_xlim(0, map_w)
-    ax.set_ylim(0, map_h)
-    # Obstacle plotting can be added here
-
-    x_coords, y_coords = zip(*path)
-    ax.plot(x_coords, y_coords, '-r')  # Red line for the path
-    plt.show()
-
-# Main function to execute the algorithm
-def run():
-    start_pos = (100, 100)  # Starting position
-    goal_pos = (1100, 400)  # Goal position
-
-    # Check if start or goal positions are within an obstacle
-    if obstacle_check(start_pos) or obstacle_check(goal_pos):
-        print("Start or goal is inside an obstacle. Please choose valid positions.")
-        return
-
-    path_from, _ = dijkstra_algo(start_pos, goal_pos)
-    path = reconstruct_path(path_from, start_pos, goal_pos)
-    plot_path(path)
-
-if __name__ == '__main__':
-    run()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import matplotlib.pyplot as plt
 
 # Constants
-CLEARANCE = 5  # Clearance in mm
-MAP_WIDTH, MAP_HEIGHT = 1200, 500  # Map dimensions
-OBSTACLE_COLOR = (0, 0, 255)  # Red color in BGR
-FREE_SPACE_COLOR = (255, 255, 255)  # White color in BGR
+robot_clearance_buffer = 5  # Clearance in mm
+map_width_pixels, map_height_pixels = 1200, 500  # Map dimensions in mm
+OBSTACLE_COLOR = (0, 0, 255)  # Obstacles color in BGR (red)
+CLEARANCE_COLOR = (0, 0, 0)   # Clearance color in BGR (black)
+FREE_SPACE_COLOR = (255, 255, 255)  # Free space color in BGR (white)
+EXPLORED_COLOR = (0, 255, 0)  # Explored nodes color in BGR (green)
+PATH_COLOR = (255, 0, 0)  # Path color in BGR (blue)
 
-# Create an empty image for the map
-map_img = np.full((MAP_HEIGHT, MAP_WIDTH, 3), FREE_SPACE_COLOR, dtype=np.uint8)
-
-# Define rectangles with clearance
-rectangles = {
-    'left_rectangle': [(100 - CLEARANCE, 0 - CLEARANCE), (175 + CLEARANCE, 400 + CLEARANCE)],
-    'center_rectangle': [(275 - CLEARANCE, 500 - CLEARANCE), (350 + CLEARANCE, 100 + CLEARANCE)],
-    'right_rectangle': [(900 - CLEARANCE, 50 - CLEARANCE), (1020 + CLEARANCE, 125 + CLEARANCE),(900 - CLEARANCE, 50 - CLEARANCE), (1100 + CLEARANCE, 450 + CLEARANCE)]
+# Actions with their costs
+actions = {
+    'UP': ('UP', (0, -1), 1),
+    'DOWN': ('DOWN', (0, 1), 1),
+    'LEFT': ('LEFT', (-1, 0), 1.0),
+    'RIGHT': ('RIGHT', (1, 0), 1.0),
+    'UP_LEFT': ('UP_LEFT', (-1, -1), 1.4),
+    'UP_RIGHT': ('UP_RIGHT', (1, -1), 1.4),
+    'DOWN_LEFT': ('DOWN_LEFT', (-1, 1), 1.4),
+    'DOWN_RIGHT': ('DOWN_RIGHT', (1, 1), 1.4),
 }
 
-# Function to draw the rectangles
-for rect in rectangles.values():
-    cv2.rectangle(map_img, rect[0], rect[1], OBSTACLE_COLOR, -1)
+# Placeholder for explored nodes visualization
+explored_nodes = []
 
-# Define the center and side length of the hexagon
+# Initialize the map image
+map_img = np.full((map_height_pixels, map_width_pixels, 3), FREE_SPACE_COLOR, dtype=np.uint8)
+
+# Function to draw obstacles with clearance zone
+def draw_obstacle_with_clearance_zone(img, obstacle, clearance):
+    # Draw the clearance area in black
+    for rect in obstacle:
+        cv2.rectangle(img, (rect[0][0] - clearance, rect[0][1] - clearance),
+                      (rect[1][0] + clearance, rect[1][1] + clearance), CLEARANCE_COLOR, -1)
+    # Draw the obstacle in red within the black clearance area
+    for rect in obstacle:
+        cv2.rectangle(img, rect[0], rect[1], OBSTACLE_COLOR, -1)
+
+# Define and draw the obstacles with clearance
+c_shape_obstacle = [
+    [(900, 50), (1100, 125)],  # Left vertical part of 'C'
+    [(1020, 50), (1100, 450)],  # Top horizontal part of 'C'
+    [(900, 375), (1100, 450)]  # Bottom horizontal part of 'C'
+]
+
+additional_rectangles = [
+    [(100, 0), (175, 400)],  # First rectangle
+    [(275, 100), (350, 500)]  # Second rectangle
+]
+
+draw_obstacle_with_clearance_zone(map_img, c_shape_obstacle + additional_rectangles, robot_clearance_buffer)
+
+# Function to draw the hexagon adjusted for clearance
+def draw_hexagon_with_clearance_zone(img, center, side):
+    clearance_points = calculate_hexagon_vertices(center, side + robot_clearance_buffer)
+    cv2.fillPoly(img, [clearance_points], CLEARANCE_COLOR)
+    inner_hexagon_points = calculate_hexagon_vertices(center, side)
+    cv2.fillPoly(img, [inner_hexagon_points], OBSTACLE_COLOR)
+
+# Helper function to calculate hexagon vertices
+def calculate_hexagon_vertices(center, side):
+    start_angle = np.pi / 6  # Starting with flat side on top
+    return np.array([
+        (int(center[0] + np.cos(start_angle + np.pi / 3 * i) * side),
+         int(center[1] + np.sin(start_angle + np.pi / 3 * i) * side))
+        for i in range(6)
+    ], np.int32).reshape((-1, 1, 2))
+
 hexagon_center = (650, 250)
 hexagon_side = 150
+draw_hexagon_with_clearance_zone(map_img, hexagon_center, hexagon_side)
 
-# Function to calculate the hexagon vertices
-def calculate_hexagon_vertices(center, side_length):
-    # Calculate the offset for clearance from the center of the hexagon
-    angle_offset = np.pi / 6  # 30 degrees in radians
-    clearance_offset = CLEARANCE / np.cos(angle_offset)
-    side_length += clearance_offset
+# Function to check if a position is within map boundaries
+def is_position_within_map(x, y):
+    return 0 <= x < map_width_pixels and 0 <= y < map_height_pixels
 
-    # Calculate vertices
-    vertices = []
-    for i in range(6):
-        angle = np.pi / 3 * i  # 60 degrees in radians for hexagon sides
-        x = int(center[0] + side_length * np.cos(angle))
-        y = int(center[1] + side_length * np.sin(angle))
-        vertices.append((x, y))
-    return np.array(vertices, np.int32)
+# Function to check if a position is in the obstacle space
+def is_position_in_obstacle(position):
+    x, y = position
 
-# Calculate hexagon vertices
-hexagon_vertices = calculate_hexagon_vertices(hexagon_center, hexagon_side)
-hexagon_vertices = hexagon_vertices.reshape((-1, 1, 2))  # Reshape for polylines
+    # Implement obstacle detection logic here 
+    # ... (e.g., check colors, shapes)
 
-# Draw the hexagon
-cv2.fillPoly(map_img, [hexagon_vertices], OBSTACLE_COLOR)
+    return False  # Placeholder 
+ 
+# Dijkstra's algorithm
+def dijkstra(start, goal):
+    global explored_nodes
+    open_list = []
+    heapq.heappush(open_list, (0, start))
+    came_from = {}
+    cost_so_far = {start: 0}
 
-# Display the map
-cv2.imshow('Map with Obstacles', map_img)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    while open_list:
+        current_cost, current_node = heapq.heappop(open_list)
+
+        if current_node == goal:
+            break
+
+        for action, (dx, dy), action_cost in actions.values():
+            next_node = (current_node[0] + dx, current_node[1] + dy)
+            if is_position_within_map(*next_node) and not is_position_in_obstacle(next_node):
+                new_cost = cost_so_far[current_node] + action_cost
+                if next_node not in cost_so_far or new_cost < cost_so_far[next_node]:
+                    cost_so_far[next_node] = new_cost
+                    priority = new_cost
+                    heapq.heappush(open_list, (priority, next_node))
+                    came_from[next_node] = current_node
+                    explored_nodes.append(next_node)
+
+    return came_from, cost_so_far
