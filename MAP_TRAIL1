@@ -1,0 +1,69 @@
+import numpy as np
+import cv2
+
+# Constants
+CLEARANCE = 5  # Clearance in mm
+MAP_WIDTH, MAP_HEIGHT = 1200, 500  # Map dimensions in mm
+OBSTACLE_COLOR = (0, 0, 255)  # Obstacles color in BGR (red)
+FREE_SPACE_COLOR = (255, 255, 255)  # Free space color in BGR (white)
+WALL_THICKNESS = 2  # Just for the visualization
+
+# Create an empty image for the map
+map_img = np.full((MAP_HEIGHT, MAP_WIDTH, 3), FREE_SPACE_COLOR, dtype=np.uint8)
+
+# Define the obstacles based on the dimensions given in the map image
+# The tuples are (top left corner, bottom right corner) of the rectangle
+obstacles = {
+    'left_rectangle': ((100, 00), (75, 400)),
+    
+    'right_rectangle': ((1000, 100), (1100, 400)),
+    # Add other obstacles here
+}
+
+# Define the octagon points
+octagon_points = np.array([
+    (500, 150),
+    (700, 150),
+    (750, 200),
+    (750, 300),
+    (700, 350),
+    (500, 350),
+    (450, 300),
+    (450, 200)
+], np.int32)
+octagon_points = octagon_points.reshape((-1, 1, 2))
+
+# Function to draw the rectangles
+def draw_rectangles(img, obstacles, clearance):
+    for obstacle in obstacles.values():
+        top_left = (obstacle[0][0] - clearance, obstacle[0][1] - clearance)
+        
+        bottom_right = (obstacle[1][0] + clearance, obstacle[1][1] + clearance)
+        cv2.rectangle(img, top_left, bottom_right, middle_rect,OBSTACLE_COLOR, -1)  # Filled rectangle
+
+# Draw the obstacles
+draw_rectangles(map_img, obstacles, CLEARANCE)
+
+# Function to draw the octagon
+def draw_octagon(img, points, clearance):
+    # Increase each point by the clearance amount
+    # This simple approach works for a symmetric shape like an octagon
+    bloated_points = points.copy()
+    for i in range(len(bloated_points)):
+        if i % 2 == 0:  # Top and bottom points
+            bloated_points[i][0][1] -= clearance
+        elif i % 2 == 1:  # Bottom points
+            bloated_points[i][0][1] += clearance
+        if i < 2 or (i > 3 and i < 6):  # Right points
+            bloated_points[i][0][0] += clearance
+        else:  # Left points
+            bloated_points[i][0][0] -= clearance
+    cv2.polylines(img, [bloated_points], isClosed=True, color=OBSTACLE_COLOR, thickness=WALL_THICKNESS)
+
+# Draw the octagon
+draw_octagon(map_img, octagon_points, CLEARANCE)
+
+# Display the map
+cv2.imshow('Map with Obstacles', map_img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
