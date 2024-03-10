@@ -1,6 +1,140 @@
 import numpy as np
 import cv2
 
+
+
+
+import numpy as np
+import matplotlib.pyplot as plt
+import heapq
+
+# Map dimensions and clearance setting
+map_w, map_h = 1200, 500  # Width and height of the map
+clr = 5  # Clearance
+
+# Movement actions and their respective costs
+movements = {
+    'MOVE_UP': ('UP', (0, -1), 1),
+    'MOVE_DOWN': ('DOWN', (0, 1), 1),
+    'MOVE_LEFT': ('LEFT', (-1, 0), 1.0),
+    'MOVE_RIGHT': ('RIGHT', (1, 0), 1.0),
+    'MOVE_UP_LEFT': ('UP_LEFT', (-1, 1), 1.4),
+    'MOVE_UP_RIGHT': ('UP_RIGHT', (1, 1), 1.4),
+    'MOVE_DOWN_LEFT': ('DOWN_LEFT', (-1, -1), 1.4),
+    'MOVE_DOWN_RIGHT': ('DOWN_RIGHT', (1, -1), 1.4),
+}
+
+# Check if the current position is within an obstacle space, considering the clearance
+def obstacle_check(pos):
+    # Placeholder for actual obstacle checking logic
+    # Return True if pos is within an obstacle, considering the clearance
+    return False
+
+# Verify if the position is within the boundaries of the map
+def within_map(x, y):
+    return 0 <= x < map_w and 0 <= y < map_h
+
+# Implementation of Dijkstra's algorithm to find the shortest path
+def dijkstra_algo(start_pos, goal_pos):
+    queue = []  # Priority queue for open list
+    heapq.heappush(queue, (0, start_pos))  # Initialize with start position
+    path_from = {}  # Track path from start to current node
+    cost = {start_pos: 0}  # Cost from start to current node
+
+    while queue:
+        current_cost, current_pos = heapq.heappop(queue)
+
+        # If goal is reached, stop the algorithm
+        if current_pos == goal_pos:
+            break
+
+        # Explore neighbors
+        for move, (dx, dy), move_cost in movements.values():
+            next_pos = (current_pos[0] + dx, current_pos[1] + dy)
+            if within_map(*next_pos) and not obstacle_check(next_pos):
+                new_cost = cost[current_pos] + move_cost
+                if next_pos not in cost or new_cost < cost[next_pos]:
+                    cost[next_pos] = new_cost
+                    heapq.heappush(queue, (new_cost, next_pos))
+                    path_from[next_pos] = current_pos
+
+    return path_from, cost
+
+# Reconstruct the shortest path from start to goal
+def reconstruct_path(path_from, start_pos, goal_pos):
+    current = goal_pos
+    path = []
+    while current != start_pos:
+        path.append(current)
+        current = path_from[current]
+    path.append(start_pos)
+    path.reverse()  # Reverse to get path from start to goal
+    return path
+
+# Function to visualize the path
+def plot_path(path):
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal')
+    ax.set_xlim(0, map_w)
+    ax.set_ylim(0, map_h)
+    # Obstacle plotting can be added here
+
+    x_coords, y_coords = zip(*path)
+    ax.plot(x_coords, y_coords, '-r')  # Red line for the path
+    plt.show()
+
+# Main function to execute the algorithm
+def run():
+    start_pos = (100, 100)  # Starting position
+    goal_pos = (1100, 400)  # Goal position
+
+    # Check if start or goal positions are within an obstacle
+    if obstacle_check(start_pos) or obstacle_check(goal_pos):
+        print("Start or goal is inside an obstacle. Please choose valid positions.")
+        return
+
+    path_from, _ = dijkstra_algo(start_pos, goal_pos)
+    path = reconstruct_path(path_from, start_pos, goal_pos)
+    plot_path(path)
+
+if __name__ == '__main__':
+    run()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Constants
 CLEARANCE = 5  # Clearance in mm
 MAP_WIDTH, MAP_HEIGHT = 1200, 500  # Map dimensions
