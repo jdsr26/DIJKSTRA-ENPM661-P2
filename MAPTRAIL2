@@ -1,0 +1,54 @@
+import numpy as np
+import cv2
+
+# Constants
+CLEARANCE = 5  # Clearance in mm
+MAP_WIDTH, MAP_HEIGHT = 1200, 500  # Map dimensions
+OBSTACLE_COLOR = (0, 0, 255)  # Red color in BGR
+FREE_SPACE_COLOR = (255, 255, 255)  # White color in BGR
+
+# Create an empty image for the map
+map_img = np.full((MAP_HEIGHT, MAP_WIDTH, 3), FREE_SPACE_COLOR, dtype=np.uint8)
+
+# Define rectangles with clearance
+rectangles = {
+    'left_rectangle': [(100 - CLEARANCE, 0 - CLEARANCE), (175 + CLEARANCE, 400 + CLEARANCE)],
+    'center_rectangle': [(275 - CLEARANCE, 500 - CLEARANCE), (350 + CLEARANCE, 100 + CLEARANCE)],
+    'right_rectangle': [(900 - CLEARANCE, 50 - CLEARANCE), (1020 + CLEARANCE, 125 + CLEARANCE),(900 - CLEARANCE, 50 - CLEARANCE), (1100 + CLEARANCE, 450 + CLEARANCE)]
+}
+
+# Function to draw the rectangles
+for rect in rectangles.values():
+    cv2.rectangle(map_img, rect[0], rect[1], OBSTACLE_COLOR, -1)
+
+# Define the center and side length of the hexagon
+hexagon_center = (650, 250)
+hexagon_side = 150
+
+# Function to calculate the hexagon vertices
+def calculate_hexagon_vertices(center, side_length):
+    # Calculate the offset for clearance from the center of the hexagon
+    angle_offset = np.pi / 6  # 30 degrees in radians
+    clearance_offset = CLEARANCE / np.cos(angle_offset)
+    side_length += clearance_offset
+
+    # Calculate vertices
+    vertices = []
+    for i in range(6):
+        angle = np.pi / 3 * i  # 60 degrees in radians for hexagon sides
+        x = int(center[0] + side_length * np.cos(angle))
+        y = int(center[1] + side_length * np.sin(angle))
+        vertices.append((x, y))
+    return np.array(vertices, np.int32)
+
+# Calculate hexagon vertices
+hexagon_vertices = calculate_hexagon_vertices(hexagon_center, hexagon_side)
+hexagon_vertices = hexagon_vertices.reshape((-1, 1, 2))  # Reshape for polylines
+
+# Draw the hexagon
+cv2.fillPoly(map_img, [hexagon_vertices], OBSTACLE_COLOR)
+
+# Display the map
+cv2.imshow('Map with Obstacles', map_img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
