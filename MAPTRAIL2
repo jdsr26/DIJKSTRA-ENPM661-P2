@@ -79,13 +79,31 @@ def is_position_within_map(x, y):
     return 0 <= x < map_width_pixels and 0 <= y < map_height_pixels
 
 # Function to check if a position is in the obstacle space
-def is_position_in_obstacle(position):
+def is_in_obstacle_space(position):
     x, y = position
+    
+    # Check for 'C' shaped obstacle with clearance
+    if ((900 - CLEARANCE <= x <= 1100 + CLEARANCE and 375 - CLEARANCE <= y <= 450 + CLEARANCE) or
+        (1020 - CLEARANCE <= x <= 1100 + CLEARANCE and 50 - CLEARANCE <= y <= 450 + CLEARANCE) or
+        (900 - CLEARANCE <= x <= 1100 + CLEARANCE and 50 - CLEARANCE <= y <= 125 + CLEARANCE)):
+        return True
 
-    # Implement obstacle detection logic here 
-    # ... (e.g., check colors, shapes)
+    # Check for first rectangle with clearance
+    if 100 - CLEARANCE <= x <= 175 + CLEARANCE and 0 - CLEARANCE <= y <= 400 + CLEARANCE:
+        return True
 
-    return False  # Placeholder 
+    # Check for second rectangle with clearance
+    if 275 - CLEARANCE <= x <= 350 + CLEARANCE and 100 - CLEARANCE <= y <= 500 + CLEARANCE:
+        return True
+
+    # Check for hexagon with clearance
+    hex_center = (650, 250)
+    hex_radius = hexagon_side + CLEARANCE  # Adding clearance to the radius
+    hex_points = hexagon_points(hex_center, hex_radius)
+    if cv2.pointPolygonTest(hex_points.reshape((-1, 1, 2)), (x, y), False) >= 0:
+        return True
+
+    return False
  
 # Dijkstra's algorithm
 def dijkstra(start, goal):
