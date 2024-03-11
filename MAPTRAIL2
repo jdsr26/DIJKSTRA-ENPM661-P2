@@ -4,13 +4,15 @@ import heapq
 import matplotlib.pyplot as plt
 
 # Constants
-robot_clearance_buffer = 5  # Clearance in mm
-map_width_pixels, map_height_pixels = 1200, 500  # Map dimensions in mm
+CLEARANCE = 5  # Clearance in mm
+MAP_WIDTH, MAP_HEIGHT = 1200, 500  # Map dimensions in mm
 OBSTACLE_COLOR = (0, 0, 255)  # Obstacles color in BGR (red)
-CLEARANCE_COLOR = (0, 0, 0)   # Clearance color in BGR (black)
+CLEARANCE_COLOR = (0, 0, 0)  # Clearance color in BGR (black)
 FREE_SPACE_COLOR = (255, 255, 255)  # Free space color in BGR (white)
 EXPLORED_COLOR = (0, 255, 0)  # Explored nodes color in BGR (green)
 PATH_COLOR = (255, 0, 0)  # Path color in BGR (blue)
+SPECIAL_AREA_COLOR = (0, 0, 255)  # Color for special areas, if needed
+SEARCH_STEP_COLOR = (0, 0, 255)  # Red color for search steps visualization
 
 # Actions with their costs
 actions = {
@@ -24,27 +26,39 @@ actions = {
     'DOWN_RIGHT': ('DOWN_RIGHT', (1, 1), 1.4),
 }
 
-# Placeholder for explored nodes visualization
-explored_nodes = []
-
 # Initialize the map image
-map_img = np.full((map_height_pixels, map_width_pixels, 3), FREE_SPACE_COLOR, dtype=np.uint8)
+map_img = np.full((MAP_HEIGHT, MAP_WIDTH, 3), FREE_SPACE_COLOR, dtype=np.uint8)
+def draw_clearance_border(img, clearance):
+    # Draw the top clearance border
+    cv2.rectangle(img, (0, 0), (MAP_WIDTH, clearance), CLEARANCE_COLOR, -1)
+    # Draw the bottom clearance border
+    cv2.rectangle(img, (0, MAP_HEIGHT - clearance), (MAP_WIDTH, MAP_HEIGHT), CLEARANCE_COLOR, -1)
+    # Draw the left clearance border
+    cv2.rectangle(img, (0, 0), (clearance, MAP_HEIGHT), CLEARANCE_COLOR, -1)
+    # Draw the right clearance border
+    cv2.rectangle(img, (MAP_WIDTH - clearance, 0), (MAP_WIDTH, MAP_HEIGHT), CLEARANCE_COLOR, -1)
 
-# Function to draw obstacles with clearance zone
-def draw_obstacle_with_clearance_zone(img, obstacle, clearance):
-    # Draw the clearance area in black
+# Call the function to draw the clearance border on the map
+draw_clearance_border(map_img, CLEARANCE)
+
+# Function to draw obstacles with clearance
+def draw_obstacle_with_clearance(img, obstacle, clearance):
     for rect in obstacle:
-        cv2.rectangle(img, (rect[0][0] - clearance, rect[0][1] - clearance),
-                      (rect[1][0] + clearance, rect[1][1] + clearance), CLEARANCE_COLOR, -1)
-    # Draw the obstacle in red within the black clearance area
-    for rect in obstacle:
+        # Adjusting rectangle coordinates to ensure they stay within map boundaries
+        adjusted_rect = [
+            (max(rect[0][0] - clearance, 0), max(rect[0][1] - clearance, 0)),
+            (min(rect[1][0] + clearance, MAP_WIDTH), min(rect[1][1] + clearance, MAP_HEIGHT))
+        ]
+        # Draw the clearance area in black
+        cv2.rectangle(img, adjusted_rect[0], adjusted_rect[1], CLEARANCE_COLOR, -1)
+        # Draw the obstacle in red within the black clearance area
         cv2.rectangle(img, rect[0], rect[1], OBSTACLE_COLOR, -1)
 
 # Define and draw the obstacles with clearance
 c_shape_obstacle = [
     [(900, 50), (1100, 125)],  # Left vertical part of 'C'
     [(1020, 50), (1100, 450)],  # Top horizontal part of 'C'
-    [(900, 375), (1100, 450)]  # Bottom horizontal part of 'C'
+    [(900, 375), (1100, 450)]   # Bottom horizontal part of 'C'
 ]
 
 additional_rectangles = [
@@ -52,17 +66,22 @@ additional_rectangles = [
     [(275, 100), (350, 500)]  # Second rectangle
 ]
 
-draw_obstacle_with_clearance_zone(map_img, c_shape_obstacle + additional_rectangles, robot_clearance_buffer)
+# Draw the 'C' shaped obstacle and additional rectangles with clearance
+draw_obstacle_with_clearance(map_img, c_shape_obstacle + additional_rectangles, CLEARANCE)
 
 # Function to draw the hexagon adjusted for clearance
-def draw_hexagon_with_clearance_zone(img, center, side):
-    clearance_points = calculate_hexagon_vertices(center, side + robot_clearance_buffer)
+def draw_hexagon_with_clearance(img, center, side):
+    # Calculate hexagon points for clearance area
+    clearance_points = hexagon_points(center, side + CLEARANCE)
+    # Draw clearance area
     cv2.fillPoly(img, [clearance_points], CLEARANCE_COLOR)
-    inner_hexagon_points = calculate_hexagon_vertices(center, side)
-    cv2.fillPoly(img, [inner_hexagon_points], OBSTACLE_COLOR)
+    # Calculate hexagon points without clearance
+    hexagon_points_inner = hexagon_points(center, side)
+    # Draw the hexagon
+    cv2.fillPoly(img, [hexagon_points_inner], OBSTACLE_COLOR)
 
-# Helper function to calculate hexagon vertices
-def calculate_hexagon_vertices(center, side):
+# Helper function to calculate hexagon points
+def hexagon_points(center, side):
     start_angle = np.pi / 6  # Starting with flat side on top
     return np.array([
         (int(center[0] + np.cos(start_angle + np.pi / 3 * i) * side),
@@ -70,15 +89,21 @@ def calculate_hexagon_vertices(center, side):
         for i in range(6)
     ], np.int32).reshape((-1, 1, 2))
 
+# Define the center and side length of the hexagon
 hexagon_center = (650, 250)
-hexagon_side = 150
-draw_hexagon_with_clearance_zone(map_img, hexagon_center, hexagon_side)
+hexagon_side = 150  # Not changing the side length as instructed
+
+# Draw the hexagon with clearance
+draw_hexagon_with_clearance(map_img, hexagon_center, hexagon_side)
+
+
 
 # Function to check if a position is within map boundaries
-def is_position_within_map(x, y):
-    return 0 <= x < map_width_pixels and 0 <= y < map_height_pixels
+def is_within_map(x, y):
+    return 0 <= x < MAP_WIDTH and 0 <= y < MAP_HEIGHT
 
 # Function to check if a position is in the obstacle space
+# 
 def is_in_obstacle_space(position):
     x, y = position
     
@@ -104,10 +129,12 @@ def is_in_obstacle_space(position):
         return True
 
     return False
- 
-# Dijkstra's algorithm
+# Assuming 'explored_nodes' is intended to be a global list that tracks explored nodes
+explored_nodes = []
+
 def dijkstra(start, goal):
     global explored_nodes
+    explored_nodes = []  # Reinitialize to track nodes for this execution
     open_list = []
     heapq.heappush(open_list, (0, start))
     came_from = {}
@@ -115,19 +142,96 @@ def dijkstra(start, goal):
 
     while open_list:
         current_cost, current_node = heapq.heappop(open_list)
-
         if current_node == goal:
             break
 
         for action, (dx, dy), action_cost in actions.values():
             next_node = (current_node[0] + dx, current_node[1] + dy)
-            if is_position_within_map(*next_node) and not is_position_in_obstacle(next_node):
+            if is_within_map(*next_node) and not is_in_obstacle_space(next_node):
                 new_cost = cost_so_far[current_node] + action_cost
                 if next_node not in cost_so_far or new_cost < cost_so_far[next_node]:
                     cost_so_far[next_node] = new_cost
-                    priority = new_cost
-                    heapq.heappush(open_list, (priority, next_node))
+                    heapq.heappush(open_list, (new_cost, next_node))
                     came_from[next_node] = current_node
-                    explored_nodes.append(next_node)
+                    # Only add to explored_nodes if it's not in an obstacle
+                    if not is_in_obstacle_space(next_node):  
+                        explored_nodes.append(next_node)
 
     return came_from, cost_so_far
+
+
+def backtrack_path(came_from, start, goal):
+    current = goal
+    path = []
+    while current != start:
+        path.append(current)
+        current = came_from[current]
+    path.append(start)
+    path.reverse()
+    return path
+
+def visualize_path_with_steps(explored_nodes, final_path, video_filename='2226path_finding_visualization.avi'):
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    video = cv2.VideoWriter(video_filename, fourcc, 20.0, (MAP_WIDTH, MAP_HEIGHT))
+
+    temp_img = map_img.copy()
+
+    # Visualize every 100th explored node
+    for i, node in enumerate(explored_nodes):
+        if i % 100 == 0:
+            cv2.circle(temp_img, (node[0], MAP_HEIGHT - node[1] - 1), 1, EXPLORED_COLOR, -1)
+            video.write(temp_img)
+
+    # Visualize the final path
+    for i in range(len(final_path) - 1):
+        cv2.line(temp_img, (final_path[i][0], MAP_HEIGHT - final_path[i][1] - 1),
+                 (final_path[i + 1][0], MAP_HEIGHT - final_path[i + 1][1] - 1), PATH_COLOR, 2)
+        video.write(temp_img)  # Consider writing less frequently if performance is an issue
+
+    video.release()
+    print(f"Video saved as {video_filename}")
+# Main function adjusted for coordinate system and visualization
+def main():
+    start_x, start_y = map(int, input("Enter start node (x y): ").split())
+    goal_x, goal_y = map(int, input("Enter goal node (x y): ").split())
+
+    # Adjust y-coordinates for the bottom-left origin system
+    start = (start_x, MAP_HEIGHT - start_y)
+    goal = (goal_x, MAP_HEIGHT - goal_y)
+
+    # Dijkstra's algorithm execution
+    came_from, cost_so_far = dijkstra(start, goal)
+    if goal not in came_from:
+        print("Goal not reachable from start with given obstacles and map boundaries.")
+        return
+
+    final_path = backtrack_path(came_from, start, goal)
+    visualize_path_with_steps(final_path, explored_nodes)
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
