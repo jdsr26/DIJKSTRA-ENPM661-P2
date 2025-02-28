@@ -1,18 +1,20 @@
-This project provides a Python implementation of Dijkstra's algorithm for pathfinding on a map.  It effectively utilizes NumPy and OpenCV to handle map representation, obstacle avoidance, and path visualization.
+# Dijkstra's Algorithm for Pathfinding
 
+This project provides a Python implementation of Dijkstra's algorithm for pathfinding on a 2D map. It utilizes NumPy for efficient array operations and OpenCV for map handling and path visualization.
 
-INSTALL THE REQUIRED LIBRARIES BY TYPING THE FOLLOWING IN COMMAND PROMPT:
+## Features
+
+* **Dijkstra's Algorithm Implementation:** Implements the classic Dijkstra's algorithm to find the shortest path between two points.
+* **Map Representation:** Uses NumPy arrays to represent the map, allowing for efficient obstacle representation and path calculations.
+* **Obstacle Avoidance:** Handles obstacle avoidance by marking specific map cells as impassable.
+* **Path Visualization:** Leverages OpenCV to visualize the map, obstacles, and the calculated shortest path.
+* **Custom Input:** Accepts custom start and goal coordinates as input.
+
+## Dependencies
+
+Before running the project, ensure you have the following libraries installed:
+
+```bash
 pip install numpy
 pip install opencv-python-headless
-Matplotlib (optional, for additional plotting features)
-
-
-GIVE THE INPUT: start coordinate (x y) && end coordinate (x y)
-custom input can be given
-Example:
-Enter start coordinates (x,y): 50 50
-Enter goal coordinates (x,y): 1150 50
-
-
-
-GIHUB REPO LINK : https://github.com/jdsr26/DIJKSTRA-ENPM661-P2/blob/main/dijsktra_maincode
+pip install matplotlib  # Optional, for additional plotting features
