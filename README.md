@@ -23,47 +23,27 @@
    cd DIJKSTRA-ENPM661-P2  
 Install dependencies:
 
-bash
-Copy
+```bash
+
 pip install numpy opencv-python-headless  
 # Optional for plotting:  
 pip install matplotlib  
+```
 🚀 Usage
 Run the script and input coordinates:
 
-bash
-Copy
-python dijsktra_maincode.py  
-Example:
+```bash
 
-Copy
+python dijsktra_maincode.py 
+``` 
+Example:
 Enter start coordinates (x,y): 50 50  
 Enter goal coordinates (x,y): 1150 50  
 Output:
-
 Computes and visualizes the shortest path while avoiding obstacles.
-
 Displays results using OpenCV (or Matplotlib if enabled).
-
-📂 Repository Structure
-Copy
-DIJKSTRA-ENPM661-P2/  
-├── dijsktra_maincode.py  # Main algorithm implementation  
-├── README.md             # Documentation  
-└── requirements.txt      # Dependency list (optional)  
-📜 License
-This project is licensed under the MIT License. See LICENSE for details.
 
 🔗 GitHub Repository
 https://github.com/jdsr26/DIJKSTRA-ENPM661-P2
 
 Optimize pathfinding with Dijkstra’s Algorithm—fast, efficient, and visually intuitive! 🚀
-
-Copy
-
-### How to Use:
-1. Copy the entire text above.  
-2. Paste it into a new file named `README.md` in your GitHub repository.  
-3. Commit and push to GitHub.  
-
-The Markdown will compile automatically on GitHub, rendering headings, code blocks, badges, and links correctly.
