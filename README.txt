@@ -1,4 +1,4 @@
-Dijkstra's Algorithm for Pathfinding
+##Dijkstra's Algorithm for Pathfinding
 
 This project provides a Python implementation of Dijkstra's Algorithm for pathfinding on a map. It efficiently utilizes NumPy and OpenCV to handle map representation, obstacle avoidance, and path visualization.
 
@@ -12,18 +12,18 @@ Features:
 Installation:
 
 Ensure you have Python 3.x installed. Then, install the required dependencies:
-
+```bash
 pip install numpy
 pip install opencv-python-headless
 pip install matplotlib  # Optional, for additional plotting features
-
+```
 Usage:
 
 Run the script and provide start and goal coordinates as input:
-
+```bash
 Enter start coordinates (x,y): 50 50
 Enter goal coordinates (x,y): 1150 50
-
+```
 Example:
 Input:
 Enter start coordinates (x,y): 50 50
