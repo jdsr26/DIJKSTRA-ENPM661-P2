@@ -34,7 +34,7 @@ Run the script and input coordinates:
 
 ```bash
 
-python dijsktra_maincode.py 
+python dijkstra_DHANA_JANGAMA.py
 ``` 
 Example:
 Enter start coordinates (x,y): 50 50  
